@@ -1,8 +1,9 @@
 <script>
-import { computed } from 'vue';
+import { computed, nextTick } from 'vue';
 import Pagination from '@/Components/Pagination.vue';
-import { router } from '@inertiajs/vue3'
+import PrimaryButton from '@/Components/PrimaryButton.vue';
 import Select from '@/Components/Select.vue';
+import PulseLoader from 'vue-spinner/src/PulseLoader.vue';
 
 export default {
     data() {
@@ -14,12 +15,13 @@ export default {
                     label: 'Results Per Page',
                     type: Array,
                     options: [
-                        10, 20, 30
+                        10, 20, 30, 50, 100
                     ],
                     default: 10
                 }
             },
-            links: null
+            links: null,
+            loading: true
         }
     },
     props: {
@@ -39,6 +41,7 @@ export default {
     methods: {
         loadData(url) {
             let self = this
+            this.loading = true
             axios.get(url, {
                 params: {
                     'filter': self.filter,
@@ -46,13 +49,12 @@ export default {
             }).then((response) => {
                 self.data = response.data.data
                 self.links = response.data.links
+                nextTick(() => {
+                    self.loading = false
+                })
             })
         },
         applyFilter() {
-            this.filter = {
-                ...this.filter,
-                perPage: 30
-            };
             this.loadData(this.fullUrl)
         },
         resetFilter() {
@@ -63,7 +65,11 @@ export default {
             return (new Date(date)).toDateString()
         },
         paginationClicked(event) {
-            console.log(event);
+            this.loadData(event.target.value)
+        },
+        perPageSelected(event) {
+            this.filter.perPage = event.target.value
+            this.loadData(this.fullUrl)
         }
     },
     computed: {
@@ -75,17 +81,13 @@ export default {
         },
         fullUrl() {
             return "http://127.0.0.1:8000/"+this.url
-        }
+        },
     },
     components: {
-      Pagination
+      Pagination, Select, PulseLoader, PrimaryButton
     },
     mounted() {
         this.loadData(this.fullUrl)
-    },
-    unmounted() {
-        // Removes listener for pagination-clicked (inertia specific)
-        router.on('pagination-clicked', (event) => {})
     }
 }
 </script>
@@ -109,15 +111,20 @@ export default {
                 class="border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block leading-5"
                 v-model="filter[key]"
             />
-            <Select v-if="filterRow.type === Array"
+            <Select v-if="filterRow.type === Array && filterRow.label !== defaultFilters.perPage.label"
                 :label="filterRow.label"
                 :options="filterRow.options"
+            >
+            </Select>
+            <Select v-if="filterRow.type === Array && filterRow.label === defaultFilters.perPage.label"
+                :label="filterRow.label"
+                :options="filterRow.options"
+                @results-per-page-selected="perPageSelected"
             >
             </Select>
         </div>
         <PrimaryButton
             class="ml-4"
-            :class="'border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block leading-5'"
             :disabled="false"
             @click="applyFilter"
         >
@@ -125,53 +132,56 @@ export default {
         </PrimaryButton>
         <PrimaryButton
             class="ml-4"
-            :class="'border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 focus:border-indigo-500 dark:focus:border-indigo-600 focus:ring-indigo-500 dark:focus:ring-indigo-600 rounded-md shadow-sm block leading-5'"
             :disabled="false"
             @click="resetFilter"
         >
             Reset Filter
         </PrimaryButton>
     </div>
-    <table
-        class="flex-auto justify-center items-center py-6 sm:pt-0 bg-gray-500 dark:bg-gray-500 border border-collapse w-5/6"
-        @pagination-clicked="paginationClicked"
-    >
-        <thead>
-            <tr>
-                <th
-                    :key="field"
-                    v-for="field in fields"
-                    class="w-1/2 border border-slate-300 dark:border-slate-600 font-semibold p-4 text-slate-900 dark:text-slate-200 text-left"
-                >
-                    <span class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100">{{ field.label }}</span>
-                </th>
-            </tr>
-        </thead>
-        <template
-            :key="row.id"
-            v-for="row in data"
+    <div v-show="!loading">
+        <table
+            class="flex-auto justify-center items-center py-6 sm:pt-0 bg-gray-500 dark:bg-gray-500 border border-collapse w-full"
         >
-            <tr>
-                <td
-                    :key="field.label"
-                    v-for="(field, key) in fields"
-                    class="border border-slate-300 dark:border-slate-700 p-4 text-slate-500 dark:text-slate-400"
-                >
-                    <span
-                        v-if="field.type === String"
-                        class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100"
+            <thead>
+                <tr class="bg-gray-900">
+                    <th
+                        :key="field"
+                        v-for="field in fields"
+                        class="w-1/2 border border-slate-300 dark:border-slate-600 font-semibold p-4 text-slate-900 dark:text-slate-200 text-left"
                     >
-                        {{ row[key] }}
-                    </span>
-                    <span
-                        v-if="field.type === Date"
-                        class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100"
+                        <span class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100">{{ field.label }}</span>
+                    </th>
+                </tr>
+            </thead>
+            <template
+                :key="row.id"
+                v-for="row in data"
+            >
+                <tr class="hover:bg-gray-700">
+                    <td
+                        :key="field.label"
+                        v-for="(field, key) in fields"
+                        class="border border-slate-300 dark:border-slate-700 p-4 text-slate-500 dark:text-slate-400"
                     >
-                        {{ dateField(row[key]) }}
-                    </span>
-                </td>
-            </tr>
-        </template>
-    </table>
-    <Pagination :links="links" />
+                        <span
+                            v-if="field.type === String"
+                            class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100"
+                        >
+                            {{ row[key] }}
+                        </span>
+                        <span
+                            v-if="field.type === Date"
+                            class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100"
+                        >
+                            {{ dateField(row[key]) }}
+                        </span>
+                    </td>
+                </tr>
+            </template>
+        </table>
+        <Pagination :links="links" @pagination-clicked="paginationClicked" />
+    </div>
+    <div class="flex justify-center p-6">
+        <PulseLoader :loading="loading"></PulseLoader>
+    </div>
 </template>
