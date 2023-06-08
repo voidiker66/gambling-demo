@@ -18,15 +18,17 @@ class AssociatesController extends Controller
     {
         // dd($request);
         $filterColumns = [
-            'name',
-            'affiliate_id'
+            'name' => 'String',
+            'affiliate_id' => 'Int'
         ];
         $request->validate([
             'range' => 'numeric|gt:0',
             'latitude' => 'numeric|required_with:range',
             'longitude' => 'numeric|required_with:range',
             'perPage' => 'numeric',
-            'filter' => 'array'
+            'filter' => 'array',
+            'sortBy' => 'string',
+            'order' => 'boolean|required_with:sortBy'
         ]);
         
         $filters = $request->query('filter');
@@ -48,10 +50,18 @@ class AssociatesController extends Controller
         if (!empty($filters)) {
             foreach ($filters as $key => $value) {
                 // Only allow filters that match existing columns
-                if (in_array($key, $filterColumns)) {
-                    $query->where($key, $value);
+                if (in_array($key, array_keys($filterColumns))) {
+                    if ($filterColumns[$key] === 'String') {
+                        $query->where($key, 'LIKE', "%$value%");
+                    } else {
+                        $query->where($key, $value);
+                    }
                 }
             }
+        }
+
+        if ($sortBy = $request->query('sortBy')) {
+            $query->orderBy($sortBy, $request->query('order') ? 'desc' : 'asc');
         }
 
         return $query->paginate($perPage);

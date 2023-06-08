@@ -16,6 +16,14 @@ const filters = {
         label: 'Longitude',
         type: String
     },
+    'name': {
+        label: 'Name',
+        type: String
+    },
+    'affiliate_id': {
+        label: 'Affiliate ID',
+        type: String
+    }
 }
 
 const fields = {

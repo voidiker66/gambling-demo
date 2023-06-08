@@ -10,6 +10,8 @@ export default {
         return {
             data: [],
             filter: {},
+            sortBy: 'id',
+            reverseSort: false,
             defaultFilters: {
                 perPage: {
                     label: 'Results Per Page',
@@ -45,6 +47,8 @@ export default {
             axios.get(url, {
                 params: {
                     'filter': self.filter,
+                    'sortBy': self.sortBy,
+                    'order': self.reverseSort ? '1' : '0'
                 }
             }).then((response) => {
                 self.data = response.data.data
@@ -69,6 +73,11 @@ export default {
         },
         perPageSelected(event) {
             this.filter.perPage = event.target.value
+            this.loadData(this.fullUrl)
+        },
+        sort(event) {
+            this.reverseSort = this.sortBy === event.target.value ? !this.reverseSort : false
+            this.sortBy = event.target.value
             this.loadData(this.fullUrl)
         }
     },
@@ -138,7 +147,7 @@ export default {
             Reset Filter
         </PrimaryButton>
     </div>
-    <div v-show="!loading">
+    <div v-show="!loading" class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg p-4">
         <table
             class="flex-auto justify-center items-center py-6 sm:pt-0 bg-gray-500 dark:bg-gray-500 border border-collapse w-full"
         >
@@ -146,10 +155,10 @@ export default {
                 <tr class="bg-gray-900">
                     <th
                         :key="field"
-                        v-for="field in fields"
+                        v-for="(field, key) in fields"
                         class="w-1/2 border border-slate-300 dark:border-slate-600 font-semibold p-4 text-slate-900 dark:text-slate-200 text-left"
                     >
-                        <span class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100">{{ field.label }}</span>
+                        <button @click="sort" :value="key" class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100 min-w-full min-h-full">{{ field.label }}</button>
                     </th>
                 </tr>
             </thead>
