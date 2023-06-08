@@ -156,7 +156,7 @@ export default {
                     <th
                         :key="field"
                         v-for="(field, key) in fields"
-                        class="w-1/2 border border-slate-300 dark:border-slate-600 font-semibold p-4 text-slate-900 dark:text-slate-200 text-left"
+                        class="border border-slate-300 dark:border-slate-600 font-semibold p-4 text-slate-900 dark:text-slate-200 text-left"
                     >
                         <button @click="sort" :value="key" class="block text-sm font-medium p-6 text-gray-900 dark:text-gray-100 min-w-full min-h-full">{{ field.label }}</button>
                     </th>
