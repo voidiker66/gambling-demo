@@ -5,7 +5,7 @@ import VueTable from '@/Components/VueTable.vue'
 
 const filters = {
     'range': {
-        label: 'Range',
+        label: 'Range (km)',
         type: String
     },
     'latitude': {
